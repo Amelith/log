@@ -1,142 +1,120 @@
-import { type ChalkInstance } from 'chalk';
+import { indent } from './errorFormatting.js';
+import type {
+    Color,
+    ColorMap,
+    ErrorFormatOptions, ErrorJSONFormatOptions, ErrorStringFormatOptions,
+    FormatOptions,
+    LoggerOptions,
+    LogLevel,
+    Output
+} from './types.js';
+import { getCallerLocation, getCurrentTime } from './util.js';
 
-/* ------ Types ------ */
+export class LogFormatter<C extends Color> {
+    private readonly getTime: () => string;
+    private readonly ignoredLogFunctions: string[];
+    private readonly colorMap: Required<ColorMap<C>>;
+    private readonly applyColor: (text: string, style: C) => string;
+    private readonly defaultFormatOptions: Required<FormatOptions>;
+    private readonly formatString: (message: string, level: string, time: string, source: string, callerLocation: string) => string[];
+    private readonly stringify: typeof JSON.stringify;
+    private readonly defaultErrorStringFormatOptions: Required<ErrorStringFormatOptions>;
+    private readonly defaultErrorJsonFormatOptions: Required<ErrorJSONFormatOptions>;
+    private readonly output: Output;
 
-export type HEX = `#${string}`;
-/** RGB or RGBA */
-export type RGB = [number, number, number] | [number, number, number, number];
+    constructor(options: LoggerOptions<C>) {
+        this.colorMap = options.colors;
+        this.applyColor = options.applyColor;
 
-/**
- * Advanced styling options for custom formatters (HTML/CSS/SVG etc.)<br>
- * {@link additionalProperties} can be used for css classes, etc.
- */
-export interface ColorStyle {
-    color?: HEX | RGB | string;
-    background?: HEX | RGB | string;
-    fontWeight?: number | 'bold' | 'normal';
-    opacity?: number;
-    italic?: boolean;
-    underline?: boolean;
-    dim?: boolean;
-
-    additionalProperties?: string | object;
-}
-
-export interface ColorMap<C> {
-    /** @default undefined */
-    log?: C;
-
-    /** @default undefined */
-    info?: C;
-
-    /** @default chalk.hex('#ff4d00') */
-    warn?: C;
-
-    error?: {
-        /** @default chalk.red */
-        style?: C;
-
-        /**
-         * Applied to header strings for specific error properties (stack, cause, etc.)
-         * @default chalk.cyan.bold
-         */
-        headers?: C;
-
-        /**
-         * Used when formatting key-value pairs
-         * @default chalk.cyan
-         */
-        fieldKeys?: C;
-
-        /**
-         * Applied to stack traces
-         * @default chalk.gray
-         */
-        stack?: C;
-
-        /**
-         * Applied to unknown error types (custom objects, ...)
-         * @default chalk.yellow
-         */
-        unknown?: C;
-    };
-
-    /**
-     * Applied to the `time` part of the log string.
-     * @default
-     */
-    time?: C;
-    callerLocation?: C;
-    source?: C;
-}
-
-type LoggerColorOptions<C = HEX | RGB | ColorStyle> =
-    | {
-        /**
-         * Use Chalk instances directly
-         */
-        colors?: ColorMap<ChalkInstance>;
-        applyColor?: never;
-    }
-    | {
-        /**
-         * Use custom color data (HEX, RGB, or Style Objects)
-         */
-        colors?: ColorMap<C>;
-
-        /**
-         * Function to apply a color to the given text.
-         * @param text Text to be formatted
-         * @param style Color / style to be applied
-         * @returns A formatted string
-         *
-         * @example
-         * ```ts
-         * applyColor: (text, style) => `<span style="color: ${style}">${text}</span>`
-         * ```
-         */
-        applyColor: (text: string, style: C) => string;
-    };
-
-export type LoggerOptions<C = HEX | RGB | ColorStyle> = LoggerColorOptions<C> & {
-    /** Whether to include the file that the log function was called from.
-     * @default true
-     */
-    includeCallerLocation?: boolean;
-
-    /**
-     * Used to format properties into a string.<br>
-     * Default output format:
-     * `time [callerLocation] [source] message`
-     */
-    formatString?: (message: string, time?: string, source?: string, callerLocation?: string) => string;
-
-    /**
-     * Names of functions to be ignored when getting the caller location.<br>
-     * Functions in this package are excluded automatically.<br>
-     * @default ['processTicksAndRejections']
-     */
-    ignoredLogFunctions?: string[];
-
-    /**
-     * Function to serialize JSON. Used for objects of type unknown
-     * @default {@link JSON.stringify}
-     */
-    stringify?: typeof JSON.stringify;
-}
-
-export class Logger<C> {
-    private colorMap: ColorMap<C>;
-    private applyColor: (text: string, style: C) => string;
-
-    private includeCallerLocation: boolean;
-    private formatString: LoggerOptions['formatString'];
-    private ignoredLogFunctions: string[];
-    private stringify: typeof JSON.stringify;
-
-    constructor(options?: LoggerOptions<C>) {
-        this.colorMap = options?.colors || {
-
+        this.getTime = options?.getTime || getCurrentTime;
+        this.ignoredLogFunctions = options?.ignoredLogFunctions || ['processTicksAndRejections'];
+        this.ignoredLogFunctions.push('debug', 'log', 'info', 'warn', 'error', 'format', 'formatString', 'getCallerLocation');
+        this.defaultFormatOptions = options?.defaultFormatOptions || {
+            applyColor: true,
+            includeLevel: true,
+            includeTime: true,
+            includeCallerLocation: true,
         };
+        this.defaultErrorStringFormatOptions = options?.defaultErrorStringFormatOptions || {
+            color: true,
+            includeStack: true,
+            indentAmount: 4,
+            json: false,
+        };
+        this.defaultErrorJsonFormatOptions = options?.defaultErrorJsonFormatOptions || {
+            includeStack: true,
+            json: true,
+        };
+        this.formatString = options?.formatString || ((m, l, t, s, c) => [l, t, c, s, m]);
+        this.stringify = options?.stringify || JSON.stringify;
+        this.output = options?.output ?? console;
+    }
+
+    private _style(text: string, color: C | undefined, options: FormatOptions = this.defaultFormatOptions): string {
+        if (!text) return '';
+        return options.applyColor && color ? this.applyColor(text, color) : text;
+    }
+
+    private _getLogLevelColor(level: LogLevel): C | undefined {
+        switch (level) {
+            case 'debug': return this.colorMap.debug;
+            case 'info': return this.colorMap.debug;
+            case 'log': return this.colorMap.debug;
+            case 'warn': return this.colorMap.warn;
+            case 'error': return this.colorMap.error?.style;
+        }
+    }
+
+    public format(message: string, level: LogLevel, source?: string, options: FormatOptions = this.defaultFormatOptions): string {
+        const lvl = options.includeLevel ? this._style(`[${level}]`, this._getLogLevelColor(level), options) : '';
+        const t = options.includeTime ? this._style(this.getTime(), this.colorMap.time, options) : '';
+        const callerLocation = options.includeCallerLocation ? getCallerLocation(this.ignoredLogFunctions) : '';
+        const cl = callerLocation ? this._style(`[${callerLocation}]`, this.colorMap.callerLocation, options) : '';
+        const src = source ? this._style(`[${source}]`, this.colorMap.source, options) : '';
+
+        return this.formatString(message, lvl, t, src, cl).filter(Boolean).join(' ');
+    }
+
+    public debug(message: string, source?: string, options?: FormatOptions) {
+        const msg = this._style(message, this.colorMap.debug, options);
+        const m = this.format(msg, 'debug', source, options);
+        this.output.debug(m);
+    }
+
+    public info(message: string, source?: string, options?: FormatOptions) {
+        const msg = this._style(message, this.colorMap.info, options);
+        const m = this.format(msg, 'info', source, options);
+        this.output.info(m);
+    }
+
+    public log(message: string, source?: string, options?: FormatOptions) {
+        const msg = this._style(message, this.colorMap.log, options);
+        const m = this.format(msg, 'log', source, options);
+        this.output.log(m);
+    }
+
+    public warn(message: string, source?: string, options?: FormatOptions) {
+        const msg = this._style(message, this.colorMap.warn, options);
+        const m = this.format(msg, 'warn', source, options);
+        this.output.warn(m);
+    }
+
+    public error(message: string, err?: unknown, source?: string,
+                 options: FormatOptions & Exclude<ErrorStringFormatOptions, 'color'> = { ...this.defaultFormatOptions, ...this.defaultErrorStringFormatOptions }
+    ) {
+        const msg = this._style(message, this.colorMap.error?.style, options);
+        const m = this.format(msg, 'error', source, options);
+        this.output.error(m);
+
+        if (err) {
+            const errorStr = this.errorToString(err, options);
+            this.output.error(indent(errorStr, 1, options.indentAmount));
+        }
+    }
+
+    public errorToString(err: unknown, options: ErrorFormatOptions = this.defaultErrorStringFormatOptions): string {
+        return `${err}`; // TODO
     }
 }
+
+export * from './types.js';
