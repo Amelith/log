@@ -1,6 +1,6 @@
 {
-  "name": "log",
-  "version": "1.0.0",
+  "name": "@amelith/log",
+  "version": "0.1.0",
   "description": "",
   "main": "src/index.ts",
   "license": "GPL-3.0",
