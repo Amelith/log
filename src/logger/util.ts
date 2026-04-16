@@ -1,6 +1,6 @@
 import type { Color, ErrorFormatter } from './types.js';
 
-export function getCurrentTime() {
+export function getCurrentTime(): string {
     return timeToString(new Date());
 }
 

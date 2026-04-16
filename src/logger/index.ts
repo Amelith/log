@@ -11,7 +11,8 @@ import type {
     FormatOptions,
     LoggerOptions,
     LogLevel,
-    Output, StrictRequired
+    Output,
+    StrictRequired
 } from './types.js';
 import { getCallerLocation, getCurrentTime } from './util.js';
 
@@ -110,31 +111,31 @@ export class LogFormatter<C extends Color> {
         return this.formatString(message, lvl, t, src, cl).filter(Boolean).join(' ');
     }
 
-    public debug(message: string, source?: string, options?: FormatOptions) {
+    public debug(message: string, source?: string, options?: FormatOptions): void {
         const msg = this._style(message, this.colorMap.debug, options);
         const m = this.format(msg, 'debug', source, options);
         this.output.debug(m);
     }
 
-    public info(message: string, source?: string, options?: FormatOptions) {
+    public info(message: string, source?: string, options?: FormatOptions): void {
         const msg = this._style(message, this.colorMap.info, options);
         const m = this.format(msg, 'info', source, options);
         this.output.info(m);
     }
 
-    public log(message: string, source?: string, options?: FormatOptions) {
+    public log(message: string, source?: string, options?: FormatOptions): void {
         const msg = this._style(message, this.colorMap.log, options);
         const m = this.format(msg, 'log', source, options);
         this.output.log(m);
     }
 
-    public warn(message: string, source?: string, options?: FormatOptions) {
+    public warn(message: string, source?: string, options?: FormatOptions): void {
         const msg = this._style(message, this.colorMap.warn, options);
         const m = this.format(msg, 'warn', source, options);
         this.output.warn(m);
     }
 
-    public error(message: string, err?: unknown, source?: string, options?: FormatOptions & ErrorFormatOptions) {
+    public error(message: string, err?: unknown, source?: string, options?: FormatOptions & ErrorFormatOptions): void {
         const msg = this._style(message, this.colorMap.error?.style, options);
         const m = this.format(msg, 'error', source, options);
         const lines: unknown[] = [m];
