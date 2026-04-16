@@ -1,4 +1,6 @@
-Small utility for printing (color-)formatted text to the console.
+Small utility for printing (color-)formatted text to the console.  
+Generally intended for personal use by myself, hence no proper documentation (for now). 
+
 Printed lines include (by default; configurable):
 - log level (debug, info, log, warn, error)
 - current time
