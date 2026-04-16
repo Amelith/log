@@ -5,15 +5,13 @@
   "main": "src/index.ts",
   "license": "GPL-3.0",
   "type": "module",
-  "scripts": {
-
-  },
-  "dependencies": {},
+  "scripts": {},
   "optionalDependencies": {
     "chalk": "^5.6.2"
   },
   "devDependencies": {
-    "@types/node": "^25.5.2",
+    "@types/node": "^25.6.0",
+    "discord.js": "^14.26.2",
     "typescript": "^6.0.2"
   },
   "private": true

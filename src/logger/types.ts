@@ -1,16 +1,26 @@
 import type { ChalkInstance } from 'chalk';
 
+type NonUndefined<T> = T extends undefined | null ? never : T;
+
+/**
+ * Requires all properties in T to be present and defined.
+ */
+export type StrictRequired<T> = {
+    [K in keyof T]-?: NonUndefined<T[K]>;
+};
+
 export interface Output {
-    debug: (msg: string) => void;
-    info: (msg: string) => void;
-    log: (msg: string) => void;
-    warn: (msg: string) => void;
-    error: (msg: string) => void;
+    debug: (msg: unknown) => void;
+    info: (msg: unknown) => void;
+    log: (msg: unknown) => void;
+    warn: (msg: unknown) => void;
+    error: (msg: unknown) => void;
 }
 
 export type LogLevel = 'debug' | 'info' | 'log' | 'warn' | 'error';
 
-/* -- Colors -- */
+/* --- Colors --- */
+
 export type HEX = `#${string}`;
 /** RGB or RGBA */
 export type RGB = [number, number, number] | [number, number, number, number];
@@ -98,8 +108,54 @@ export interface ColorMap<C extends Color> {
     source?: C | undefined;
 }
 
+/* --- Errors --- */
+export interface ErrorFormatter<T, C extends Color = Color> {
+    check: ((err: unknown) => err is T) | (new (...args: any[]) => T);
+    toString: (err: T, options: StrictRequired<ErrorStringFormatOptions>, helpers: {
+        formatErrorName: (name: string, message: string, color?: C) => string,
+        formatHeading: (key: string, color?: C) => string,
+        formatField: (key: string, value: unknown, keyColor?: C) => string,
+        indent: (text: string, level: number, amount: number) => string,
+        indentJSON: (data: unknown, level: number, amount: number) => string,
+        style: (text: string, color: C | undefined) => string,
+        colorMap: Required<ColorMap<C>>,
+        /**
+         * For recursively formatting nested errors.
+         */
+        formatError: (err: unknown) => string
+    }) => string | string[];
+    toJSON: (err: T, options: StrictRequired<ErrorJSONFormatOptions>, helpers: {
+        /**
+         * For recursively formatting nested errors.
+         */
+        errorToJSON: (err: unknown) => unknown
+    }) => unknown;
+}
+
+export interface ErrnoError extends Error {
+    address?: string;
+    code?: string;
+    dest?: string;
+    errno?: string | number;
+    info?: object;
+    path?: string;
+    port?: number;
+    syscall?: string;
+}
+
+export interface ChildProcessError extends Error {
+    code: number | string | null;
+    errno?: string;
+    syscall?: string;
+    path?: string;
+    spawnargs?: string[];
+    killed?: boolean;
+    signal?: string | null;
+    cmd: string;
+}
+
 /* --- Options --- */
-export type LoggerOptions<C extends Color> = {
+export interface LoggerOptions<C extends Color> {
     /**
      * Function to get the current time.<br>
      * Default format:
@@ -115,23 +171,28 @@ export type LoggerOptions<C extends Color> = {
      */
     ignoredLogFunctions?: string[];
 
+    colors: Required<ColorMap<C>>;
+    applyColor: (text: string, style: C) => string;
+
     /**
      * Format options to use if no separate options are specified when calling a format function.
      */
-    defaultFormatOptions?: Required<FormatOptions>;
+    defaultFormatOptions?: StrictRequired<FormatOptions>;
 
     /**
      * Error format options to use if no separate options are specified when calling the error format function with { json: false }.
      */
-    defaultErrorStringFormatOptions?: Required<ErrorStringFormatOptions>;
+    defaultErrorStringFormatOptions?: StrictRequired<Omit<ErrorStringFormatOptions, 'json'>>;
 
     /**
      * Format options to use if no separate options are specified when calling a format function with { json: true }.
      */
-    defaultErrorJsonFormatOptions?: Required<ErrorJSONFormatOptions>;
+    defaultErrorJsonFormatOptions?: StrictRequired<Omit<ErrorJSONFormatOptions, 'json'>>;
 
-    colors: Required<ColorMap<C>>;
-    applyColor: (text: string, style: C) => string;
+    /**
+     * Whether to output errors as raw objects by default.
+     */
+    outputErrorsAsJson?: boolean | undefined;
 
     /**
      * Used to format colored properties into a string.<br>
@@ -142,10 +203,36 @@ export type LoggerOptions<C extends Color> = {
     formatString?: (message: string, level: string, time: string, source: string, callerLocation: string) => string[];
 
     /**
-     * Function to serialize JSON. Used for objects of type unknown
-     * @default {@link JSON.stringify}
+     * Additional error formatters.<br>
+     * Providing a class for the check property uses instanceof,
+     * otherwise use a function returning a boolean to determine error type.<br>
+     * The formatter function should return an object if options.json === true, otherwise a string.<br>
+     * Functions for styling specific error properties can be used in the custom formatting function.<br>
+     * By default, formatters are included for:
+     * - {@link SpawnSyncReturns} (thrown by spawnSync)
+     * - Unknown errors (string literals, custom objects etc.).
+     *   In this case, any properties are attached using JSON.stringify with no formatting.
+     * - Child process errors
+     * - System errors (errno) (fs, network, etc.)
+     * - Generic {@link Error}s
+     *
+     * Order in which formatters are added matters, especially for subclasses.
+     * If `foo` extends `bar`, add the formatter for `foo` first as `err instanceof bar`
+     * is true for both objects of type `foo` and objects of type `bar`.<br>
+     *
+     * All error types included by default are checked after this array, in the order mentioned above.<br>
+     * Stack is added separately after the formatter is called, if specified.<br>
+     *
+     * Use {@link createErrorFormatter} for type-safe function creation.
      */
-    stringify?: typeof JSON.stringify;
+    additionalErrorFormatters?: ErrorFormatter<any, C>[];
+
+    /**
+     * Function to replace JSON values. Used for error objects of type unknown.<br>
+     * This is directly passed to JSON.stringify.<br>
+     * @default null
+     */
+    jsonReplacer?: Parameters<JSON['stringify']>[1];
 
     /**
      * Object containing functions for debug, info, log, warn and error.
@@ -167,8 +254,8 @@ interface BaseErrorFormatOptions {
 }
 
 export interface ErrorStringFormatOptions extends BaseErrorFormatOptions {
-    color?: boolean;
-    indentAmount?: number;
+    applyColor?: boolean | undefined;
+    indentAmount?: number | undefined;
     json?: false | undefined;
 }
 

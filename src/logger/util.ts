@@ -1,3 +1,5 @@
+import type { Color, ErrorFormatter } from './types.js';
+
 export function getCurrentTime() {
     return timeToString(new Date());
 }
@@ -58,4 +60,11 @@ export function getCallerLocation(ignoredFunctions: string[]): string {
     }
 
     return '';
+}
+
+// Helper function that infers T from the check property
+export function createErrorFormatter<T, C extends Color = Color>(
+    formatter: ErrorFormatter<T, C>
+): ErrorFormatter<T, C> {
+    return formatter;
 }
