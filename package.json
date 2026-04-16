@@ -2,8 +2,8 @@
   "name": "@amelith/log",
   "version": "0.1.0",
   "description": "",
-  "main": "src/index.ts",
-  "license": "GPL-3.0",
+  "main": "src/ansi/index.ts",
+  "license": "GPL-3.0-or-later",
   "type": "module",
   "scripts": {},
   "optionalDependencies": {

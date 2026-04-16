@@ -1,4 +1,4 @@
-import type { Color, ErrorFormatter } from './types.js';
+import type { Color, ErrorFormatter } from './types.ts';
 
 export function getCurrentTime(): string {
     return timeToString(new Date());

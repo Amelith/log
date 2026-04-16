@@ -13,8 +13,8 @@ import type {
     LogLevel,
     Output,
     StrictRequired
-} from './types.js';
-import { getCallerLocation, getCurrentTime } from './util.js';
+} from './types.ts';
+import { getCallerLocation, getCurrentTime } from './util.ts';
 
 export class LogFormatter<C extends Color> {
     private readonly getTime: () => string;
@@ -431,5 +431,5 @@ export class LogFormatter<C extends Color> {
     }
 }
 
-export * from './types.js';
-export { createErrorFormatter } from './util.js';
+export * from './types.ts';
+export { createErrorFormatter } from './util.ts';

@@ -1,23 +1,12 @@
-/*const CHALK_DEFAULTS: Required<ColorMap<ChalkInstance>> = {
-    debug: chalk.hex(HEX_DEFAULTS.debug as string),
-    log: undefined,
-    info: undefined,
-    warn: chalk.hex(HEX_DEFAULTS.warn as string),
-    error: {
-        style: chalk.red,
-        nameStyle: chalk.red.bold,
-        headings: chalk.cyan.bold,
-        fieldKeys: chalk.cyan,
-        stack: chalk.gray,
-        unknown: chalk.yellow,
-    },
+/*
 
-    time: chalk.gray.dim,
-    callerLocation: chalk.gray.dim,
-    source: chalk.hex(hex.source as string),
-};
+    ".": "./src/ansi/index.ts",
+    "./ansi": "./src/ansi/index.ts",
+    "./html": "./src/html/index.ts",
+ */
 
-private isChalkMode(c: ColorMap<C>): c is ColorMap<ChalkInstance> {
+
+/*private isChalkMode(c: ColorMap<C>): c is ColorMap<ChalkInstance> {
     return Object.values(c).some(v =>
         typeof v === 'function' ||
         (v && typeof v === 'object' && Object.values(v).some(inner => typeof inner === 'function'))
@@ -46,3 +35,4 @@ if (useChalk) {
 }
 
 */
+

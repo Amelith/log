@@ -3,7 +3,7 @@ import chalk, { type ChalkInstance } from 'chalk';
 import { DiscordAPIError, DiscordjsError, HTTPError, RateLimitError } from 'discord.js';
 import * as child_process from 'node:child_process';
 import * as fs from 'node:fs/promises';
-import { createErrorFormatter, type ErrorFormatOptions, type FormatOptions, LogFormatter } from '~/logger/index.js';
+import { createErrorFormatter, type ErrorFormatOptions, type FormatOptions, LogFormatter } from '~/logger/index.ts';
 
 const HEX_DEFAULTS = {
     debug: '#666',

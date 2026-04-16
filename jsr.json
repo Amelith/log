@@ -1,0 +1,8 @@
+{
+  "name": "@amelith/log",
+  "version": "0.1.0",
+  "license": "GPL-3.0-or-later",
+  "exports": {
+    "./lfm": "./src/logger/index.ts"
+  }
+}

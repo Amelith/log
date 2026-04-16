@@ -18,6 +18,8 @@
     "exactOptionalPropertyTypes": true,
     "useUnknownInCatchVariables": true,
     "noImplicitReturns": true,
+    "allowImportingTsExtensions": true,
+    "isolatedDeclarations": true,
 
     /* Code health */
     "noFallthroughCasesInSwitch": true,
@@ -33,7 +35,7 @@
 
     /* Interop flags */
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
+    "forceConsistentCasingInFileNames": true
   },
   "include": ["src", "tests"],
   "exclude": [".git", ".idea", "node_modules", "dist", "scripts"],
