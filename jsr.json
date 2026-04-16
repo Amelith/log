@@ -4,5 +4,13 @@
   "license": "GPL-3.0-or-later",
   "exports": {
     "./lfm": "./src/logger/index.ts"
+  },
+  "publish": {
+    "include": [
+      "LICENSE",
+      "README.md",
+      "package.json",
+      "src"
+    ]
   }
 }
